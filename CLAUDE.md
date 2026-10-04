@@ -46,18 +46,37 @@ whatever size the window is.
 `web/flutter_bootstrap.js` is still custom, for two reasons the default
 bootstrap does not cover:
 
-- **CanvasKit is pinned to this server** via `canvasKitBaseUrl: "canvaskit/"`.
-  By default Flutter fetches its graphics engine from
-  `https://www.gstatic.com/flutter-canvaskit`. Embedded browsers — notably the
-  VS Code preview pane, which is a webview with a strict content policy — block
-  that external request, and the engine then never initializes. The failure is
-  entirely browser-side, so **the dev server log stays clean** while the page
-  hangs forever on the loading placeholder. This cost real debugging time; do
-  not remove the pin. It also makes the preview work offline.
+- **CanvasKit is pinned to this server** via `canvasKitBaseUrl: "canvaskit/"`,
+  so the app works offline and inside embedded browsers that block external
+  fetches, instead of pulling the engine from `gstatic.com`.
 - **Boot failures are shown on the page.** Script errors, unhandled rejections
   and a 20-second stall overwrite the `#loading` placeholder with the error
   text in red, instead of leaving "starting nure…" up indefinitely, which is
   indistinguishable from still loading.
+
+> **Never write the template tokens — the double-brace `flutter_js` and
+> `flutter_build_config` placeholders — anywhere in `flutter_bootstrap.js`
+> except where they are meant to be expanded, not even inside a comment.**
+> Flutter substitutes them by plain text replacement with no awareness of
+> JavaScript syntax. A mention in a comment injects the entire engine bundle
+> into that comment: everything up to its first newline is commented out and
+> the rest becomes a syntax error. The file then never parses, so *nothing*
+> runs — not the app, not even the error handler above — and the page hangs on
+> the placeholder while the server log stays perfectly clean. This bug shipped
+> in the first version of this file and took hours to find.
+
+After changing `web/flutter_bootstrap.js`, check that the generated file still
+parses. A successful `flutter build web` does **not** catch this, because
+Flutter never parses the JavaScript it emits:
+
+```powershell
+flutter build web --dart-define-from-file=env.json
+node --check build\web\flutter_bootstrap.js
+```
+
+Note that debug mode (`flutter run`) loads ~854 separate DDC module scripts, so
+first paint legitimately takes far longer than a release build. Slow is not the
+same as broken.
 
 ### What the preview does not prove
 

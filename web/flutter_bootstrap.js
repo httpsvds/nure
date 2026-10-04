@@ -4,8 +4,13 @@
 // This file exists for two reasons the default bootstrap does not cover:
 // pinning CanvasKit to this server, and making boot failures visible.
 //
-// The {{flutter_js}} and {{flutter_build_config}} tokens are substituted by
-// `flutter build web` / `flutter run`.
+// WARNING: never write the template tokens (the double-brace flutter_js and
+// flutter_build_config placeholders) anywhere else in this file, not even
+// inside a comment. Flutter substitutes them by plain text replacement with no
+// awareness of JavaScript syntax, so a mention in a comment injects the whole
+// engine bundle into that comment and the file stops parsing. Nothing then
+// runs - no app, no error handler - and the page hangs on the placeholder
+// with a clean server log. That exact mistake cost hours here.
 
 {{flutter_js}}
 {{flutter_build_config}}
@@ -40,11 +45,9 @@ const nureBootTimer = setTimeout(function () {
 _flutter.loader
   .load({
     config: {
-      // Load the graphics engine from this server, not from
-      // https://www.gstatic.com/flutter-canvaskit. Embedded browsers and
-      // offline machines block that external fetch, and the engine then never
-      // initializes - the app hangs on the placeholder with nothing in the
-      // server log to show for it.
+      // Load the graphics engine from this server rather than from
+      // gstatic.com, so the app also works offline and inside embedded
+      // browsers that block external fetches.
       canvasKitBaseUrl: "canvaskit/",
     },
     onEntrypointLoaded: async function (engineInitializer) {
