@@ -7,8 +7,15 @@ frame, because this machine cannot run the iOS Simulator.
 
 ```powershell
 cd C:\Users\Vedik\nure
-.\run.ps1
+.\run.cmd
 ```
+
+**Use `run.cmd`, not `run.ps1`.** This machine's PowerShell execution policy is
+`Restricted` (the Windows default — every scope is Undefined), so `.\run.ps1`
+is refused with "running scripts is disabled on this system", nothing starts,
+and the browser then shows a failed-to-load page that looks like an app bug.
+A `.cmd` file is not subject to that policy. `run.ps1` is kept for anyone whose
+policy allows it; it takes the same arguments.
 
 Chrome opens on the preview page: the app renders inside an iPhone-shaped
 frame at that device's exact logical size. Keep that terminal focused and press
@@ -28,7 +35,7 @@ Other useful commands:
 | `flutter analyze` | Static analysis; keep it at zero issues |
 | `flutter test` | Widget tests (run without credentials — see below) |
 | `flutter build web --dart-define-from-file=env.json` | Production web build into `build\web` |
-| `.\run.ps1 -Device edge` | Same preview in Edge |
+| `.\run.cmd edge` | Same preview in Edge |
 
 ## The iPhone preview
 
