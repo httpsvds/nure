@@ -48,7 +48,7 @@ class NureProgressBar extends StatelessWidget {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(height),
                         gradient: const LinearGradient(
-                          colors: [NureColors.sage, NureColors.sageDeep],
+                          colors: [NureColors.sageLight, NureColors.sage],
                         ),
                         boxShadow: [
                           BoxShadow(

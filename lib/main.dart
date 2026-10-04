@@ -88,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const Icon(
                 Icons.auto_awesome_outlined,
                 size: 56,
-                color: NureColors.terracotta,
+                color: NureColors.sageDeep,
               ),
               const SizedBox(height: 20),
               Text('nure', style: theme.textTheme.displaySmall),

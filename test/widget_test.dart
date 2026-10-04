@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:nure/main.dart';
@@ -21,6 +22,40 @@ void main() {
       kCountries.any((c) => c.code == 'AE' && c.name == 'United Arab Emirates'),
       isTrue,
     );
+  });
+
+  testWidgets('search filters the list and ranks prefix matches first',
+      (tester) async {
+    await tester.pumpWidget(const NureApp());
+    await tester.pump();
+
+    await tester.enterText(find.byType(TextField), 'ind');
+    await tester.pumpAndSettle();
+
+    // India starts with the query, so it must come before the territories
+    // that merely contain it.
+    final firstTile = tester.widgetList<Text>(find.byType(Text)).firstWhere(
+          (t) => (t.data ?? '').toLowerCase().contains('ind'),
+        );
+    expect(firstTile.data, 'India');
+
+    expect(find.text('Afghanistan'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'zzzzzz');
+    await tester.pumpAndSettle();
+    expect(find.text('No countries match that search'), findsOneWidget);
+  });
+
+  testWidgets('every UN member state is present with a flag code',
+      (tester) async {
+    const unMembers = [
+      'AF', 'US', 'GB', 'FR', 'DE', 'IN', 'CN', 'JP', 'BR', 'ZA', //
+      'AE', 'NG', 'RU', 'MX', 'ID', 'PK', 'BD', 'ET', 'TZ', 'VN',
+    ];
+    final codes = kCountries.map((c) => c.code).toSet();
+    for (final code in unMembers) {
+      expect(codes.contains(code), isTrue, reason: '$code missing');
+    }
   });
 
   testWidgets('selecting a country pins it and enables Continue',

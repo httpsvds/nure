@@ -3,24 +3,32 @@ import 'package:flutter/material.dart';
 
 /// The nure palette.
 ///
-/// Warm paper background with white cards, a terracotta accent for choices and
-/// actions, and a sage green reserved for progress.
+/// A white page with hairline-bordered cards and a single sage accent used for
+/// selection, the primary action and progress alike.
 abstract final class NureColors {
-  static const paper = Color(0xFFF7F2E8);
+  static const paper = Color(0xFFFFFFFF);
   static const card = Color(0xFFFFFFFF);
   static const ink = Color(0xFF15130F);
-  static const muted = Color(0xFFA6A29A);
-  static const hairline = Color(0xFFEDE7DA);
+  static const muted = Color(0xFF9B9B96);
+  static const hairline = Color(0xFFE6E6E2);
 
-  /// Selection and primary actions.
-  static const terracotta = Color(0xFFC2622F);
-  static const terracottaDark = Color(0xFFA8521F);
+  /// Input fields, which need to read as recessed against a white page.
+  static const field = Color(0xFFF4F4F2);
 
-  /// Progress only — deliberately not used for buttons, so forward motion
-  /// reads differently from "this is tappable".
-  static const sage = Color(0xFF8FC0A9);
-  static const sageDeep = Color(0xFF6FA98E);
-  static const sageTrack = Color(0xFFE4EBE1);
+  /// The one accent: selection borders, the primary button and progress all
+  /// use this family, so the screen reads as a single colour.
+  ///
+  /// [sageDeep] is dark enough to carry white text at ~5:1 contrast; the
+  /// lighter shades are decorative only and must not sit under white text.
+  static const sageLight = Color(0xFF8FC0A9);
+  static const sage = Color(0xFF5E9E7E);
+  static const sageDeep = Color(0xFF3E7A5E);
+  static const sageTrack = Color(0xFFE8EFE9);
+
+  /// A disabled action — opaque, never a faded overlay, so the list cannot
+  /// show through it.
+  static const disabled = Color(0xFFDCE4DD);
+  static const disabledInk = Color(0xFF9DAAA1);
 }
 
 /// Nunito is a variable font, shipped as a single file with a `wght` axis.
@@ -49,8 +57,8 @@ TextStyle nunito(
 
 ThemeData buildNureTheme() {
   final scheme = ColorScheme.fromSeed(
-    seedColor: NureColors.terracotta,
-    primary: NureColors.terracotta,
+    seedColor: NureColors.sageDeep,
+    primary: NureColors.sageDeep,
     surface: NureColors.paper,
   );
 

@@ -31,7 +31,53 @@ class CountryPage extends StatefulWidget {
 }
 
 class _CountryPageState extends State<CountryPage> {
+  final TextEditingController _search = TextEditingController();
+  final ScrollController _scroll = ScrollController();
+
   Country? _selected;
+  List<Country> _results = kCountries;
+
+  @override
+  void initState() {
+    super.initState();
+    _search.addListener(_applyFilter);
+  }
+
+  @override
+  void dispose() {
+    _search
+      ..removeListener(_applyFilter)
+      ..dispose();
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  void _applyFilter() {
+    final query = _search.text.trim().toLowerCase();
+
+    final next = query.isEmpty
+        ? kCountries
+        : kCountries.where((c) {
+            return c.name.toLowerCase().contains(query) ||
+                c.code.toLowerCase() == query;
+          }).toList(growable: false);
+
+    // Ranking a prefix match above a mid-word one keeps "ind" showing India
+    // before British Indian Ocean Territory.
+    if (query.isNotEmpty) {
+      final ranked = [...next]..sort((a, b) {
+          final aStarts = a.name.toLowerCase().startsWith(query);
+          final bStarts = b.name.toLowerCase().startsWith(query);
+          if (aStarts != bStarts) return aStarts ? -1 : 1;
+          return a.name.compareTo(b.name);
+        });
+      setState(() => _results = ranked);
+    } else {
+      setState(() => _results = next);
+    }
+
+    if (_scroll.hasClients) _scroll.jumpTo(0);
+  }
 
   void _select(Country country) {
     if (_selected == country) return;
@@ -56,16 +102,21 @@ class _CountryPageState extends State<CountryPage> {
               onClose: widget.onClose,
             ),
             const _Heading(),
+            _SearchField(controller: _search),
             if (selected != null) _PinnedSelection(country: selected),
             Expanded(
               child: Stack(
                 children: [
+                  if (_results.isEmpty)
+                    const _NoResults()
+                  else
                   ListView.builder(
+                    controller: _scroll,
                     padding: const EdgeInsets.fromLTRB(20, 4, 20, 140),
-                    itemCount: kCountries.length,
+                    itemCount: _results.length,
                     itemExtent: _CountryTile.extent,
                     itemBuilder: (context, i) {
-                      final country = kCountries[i];
+                      final country = _results[i];
                       return _CountryTile(
                         country: country,
                         selected: country == selected,
@@ -92,7 +143,7 @@ class _CountryPageState extends State<CountryPage> {
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                   colors: [
-                                    Color(0x00F7F2E8),
+                                    Color(0x00FFFFFF),
                                     NureColors.paper,
                                   ],
                                 ),
@@ -204,6 +255,88 @@ class _Heading extends StatelessWidget {
   }
 }
 
+class _SearchField extends StatelessWidget {
+  const _SearchField({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      child: ValueListenableBuilder<TextEditingValue>(
+        valueListenable: controller,
+        builder: (context, value, _) {
+          return TextField(
+            controller: controller,
+            textInputAction: TextInputAction.search,
+            style: nunito(16, 600),
+            cursorColor: NureColors.sageDeep,
+            decoration: InputDecoration(
+              hintText: 'Search country',
+              hintStyle: nunito(16, 500, color: NureColors.muted),
+              prefixIcon: const Icon(
+                Icons.search,
+                size: 22,
+                color: NureColors.muted,
+              ),
+              suffixIcon: value.text.isEmpty
+                  ? null
+                  : Pressable(
+                      onPressed: controller.clear,
+                      scale: 0.8,
+                      child: const Icon(
+                        Icons.close,
+                        size: 20,
+                        color: NureColors.muted,
+                      ),
+                    ),
+              filled: true,
+              fillColor: NureColors.field,
+              contentPadding: const EdgeInsets.symmetric(vertical: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: NureColors.sageDeep,
+                  width: 1.6,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _NoResults extends StatelessWidget {
+  const _NoResults();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 48),
+      child: Column(
+        children: [
+          const Icon(Icons.travel_explore_outlined,
+              size: 40, color: NureColors.muted),
+          const SizedBox(height: 12),
+          Text('No countries match that search',
+              style: nunito(15, 600, color: NureColors.muted)),
+        ],
+      ),
+    );
+  }
+}
+
 /// Keeps the current answer on screen above the scrolling list.
 class _PinnedSelection extends StatelessWidget {
   const _PinnedSelection({required this.country});
@@ -267,12 +400,12 @@ class _CountryTile extends StatelessWidget {
             color: NureColors.card,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: selected ? NureColors.terracotta : NureColors.hairline,
+              color: selected ? NureColors.sageDeep : NureColors.hairline,
               width: selected ? 1.6 : 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF8A7C5E).withValues(alpha: 0.07),
+                color: const Color(0xFF3A3A38).withValues(alpha: 0.06),
                 blurRadius: 10,
                 offset: const Offset(0, 3),
               ),
@@ -325,7 +458,7 @@ class _Radio extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(
-          color: selected ? NureColors.terracotta : const Color(0xFF2B2722),
+          color: selected ? NureColors.sageDeep : const Color(0xFF8C8C88),
           width: selected ? 2 : 1.6,
         ),
       ),
@@ -340,7 +473,7 @@ class _Radio extends StatelessWidget {
           height: 12,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            color: NureColors.terracotta,
+            color: NureColors.sageDeep,
           ),
         ),
       ),
@@ -367,12 +500,12 @@ class _ContinueButton extends StatelessWidget {
         height: 62,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: enabled ? NureColors.terracotta : const Color(0xFFE6DACB),
+          color: enabled ? NureColors.sageDeep : NureColors.disabled,
           borderRadius: BorderRadius.circular(18),
           boxShadow: enabled
               ? [
                   BoxShadow(
-                    color: NureColors.terracotta.withValues(alpha: 0.35),
+                    color: NureColors.sageDeep.withValues(alpha: 0.3),
                     blurRadius: 18,
                     offset: const Offset(0, 8),
                   ),
@@ -384,7 +517,7 @@ class _ContinueButton extends StatelessWidget {
           style: nunito(
             17.5,
             800,
-            color: enabled ? Colors.white : const Color(0xFFB0A392),
+            color: enabled ? Colors.white : NureColors.disabledInk,
           ),
           child: const Text('Continue'),
         ),
