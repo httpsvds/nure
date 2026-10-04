@@ -14,17 +14,24 @@ import 'country.dart';
 class CountryPage extends StatefulWidget {
   const CountryPage({
     super.key,
+    this.progress = 0.15,
+    this.selected,
+    this.onSelected,
     this.onContinue,
+    this.onBack,
     this.onClose,
-    this.step = 1,
-    this.stepCount = 3,
   });
 
-  final ValueChanged<Country>? onContinue;
-  final VoidCallback? onClose;
+  final double progress;
 
-  final int step;
-  final int stepCount;
+  /// Held by the flow rather than this page, so going back and forward keeps
+  /// the answer.
+  final Country? selected;
+  final ValueChanged<Country>? onSelected;
+
+  final VoidCallback? onContinue;
+  final VoidCallback? onBack;
+  final VoidCallback? onClose;
 
   @override
   State<CountryPage> createState() => _CountryPageState();
@@ -34,7 +41,6 @@ class _CountryPageState extends State<CountryPage> {
   final TextEditingController _search = TextEditingController();
   final ScrollController _scroll = ScrollController();
 
-  Country? _selected;
   List<Country> _results = kCountries;
 
   @override
@@ -80,13 +86,13 @@ class _CountryPageState extends State<CountryPage> {
   }
 
   void _select(Country country) {
-    if (_selected == country) return;
-    setState(() => _selected = country);
+    if (widget.selected == country) return;
+    widget.onSelected?.call(country);
   }
 
   @override
   Widget build(BuildContext context) {
-    final selected = _selected;
+    final selected = widget.selected;
 
     return Scaffold(
       backgroundColor: NureColors.paper,
@@ -95,10 +101,8 @@ class _CountryPageState extends State<CountryPage> {
         child: Column(
           children: [
             _Header(
-              progress: widget.step / widget.stepCount,
-              onBack: Navigator.of(context).canPop()
-                  ? () => Navigator.of(context).pop()
-                  : null,
+              progress: widget.progress,
+              onBack: widget.onBack,
               onClose: widget.onClose,
             ),
             const _Heading(),
@@ -162,9 +166,8 @@ class _CountryPageState extends State<CountryPage> {
                             ),
                             child: _ContinueButton(
                               enabled: selected != null,
-                              onPressed: selected == null
-                                  ? null
-                                  : () => widget.onContinue?.call(selected),
+                              onPressed:
+                                  selected == null ? null : widget.onContinue,
                             ),
                           ),
                         ),
@@ -245,8 +248,9 @@ class _Heading extends StatelessWidget {
           Text('Where are you?', style: Theme.of(context).textTheme.displaySmall),
           const SizedBox(height: 12),
           Text(
-            'Because of regulations we need to know the countries in '
-            'which you are treated as a tax resident',
+            'nure shows what is spreading where you are. Live activity data '
+            'is UK-only for now, so pick the United Kingdom for the full '
+            'experience.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ],

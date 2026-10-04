@@ -2,8 +2,8 @@ import 'dart:async' show unawaited;
 
 import 'package:flutter/material.dart';
 
-import 'onboarding/country.dart';
-import 'onboarding/country_page.dart';
+import 'onboarding/answers.dart';
+import 'onboarding/onboarding.dart';
 import 'supabase.dart';
 import 'theme.dart';
 
@@ -27,153 +27,98 @@ class NureApp extends StatelessWidget {
       title: 'nure',
       debugShowCheckedModeBanner: false,
       theme: buildNureTheme(),
-      home: const OnboardingFlow(),
+      home: const RootScreen(),
     );
   }
 }
 
-/// Holds the answers collected during onboarding.
-///
-/// Nothing is persisted yet — once there is a Supabase table to write to, this
-/// is the place to save from.
-class OnboardingFlow extends StatefulWidget {
-  const OnboardingFlow({super.key});
+class RootScreen extends StatefulWidget {
+  const RootScreen({super.key});
 
   @override
-  State<OnboardingFlow> createState() => _OnboardingFlowState();
+  State<RootScreen> createState() => _RootScreenState();
 }
 
-class _OnboardingFlowState extends State<OnboardingFlow> {
-  Country? _country;
+class _RootScreenState extends State<RootScreen> {
+  OnboardingAnswers? _answers;
 
   @override
   Widget build(BuildContext context) {
-    if (_country == null) {
-      return CountryPage(
-        onContinue: (country) => setState(() => _country = country),
+    final answers = _answers;
+    if (answers == null) {
+      return OnboardingFlow(
+        // Where a Supabase write belongs once there is a profile table:
+        // `a.toJson()` is already the shape to send.
+        onComplete: (a) => setState(() => _answers = a),
       );
     }
-    return HomeScreen(country: _country!);
+    return HomeScreen(answers: answers);
   }
 }
 
-class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, this.country});
+/// Placeholder destination. The disease browser replaces this.
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key, required this.answers});
 
-  final Country? country;
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _tab = 0;
+  final OnboardingAnswers answers;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final where = answers.region ?? answers.country?.name ?? 'the UK';
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('nure'),
-        backgroundColor: NureColors.paper,
-        surfaceTintColor: Colors.transparent,
-      ),
-      body: Center(
+      backgroundColor: NureColors.paper,
+      body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.auto_awesome_outlined,
-                size: 56,
-                color: NureColors.sageDeep,
-              ),
-              const SizedBox(height: 20),
-              Text('nure', style: theme.textTheme.displaySmall),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
-                widget.country == null
-                    ? 'Scaffold is live. Replace this screen to start building.'
-                    : 'Onboarding done — ${widget.country!.name} selected.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium,
+                'Hello ${answers.displayName}',
+                style: nunito(14, 700, color: NureColors.muted),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Active in $where',
+                style: nunito(29, 800, height: 1.12, letterSpacing: -0.8),
               ),
               const SizedBox(height: 28),
-              const _BackendStatus(),
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.coronavirus_outlined,
+                        size: 50,
+                        color: NureColors.sageDeep,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'The disease browser goes here',
+                        style: nunito(16.5, 700),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Collected: ${answers.toJson()}',
+                        textAlign: TextAlign.center,
+                        style: nunito(
+                          11.5,
+                          500,
+                          color: NureColors.muted,
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        backgroundColor: NureColors.card,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.search_outlined),
-            selectedIcon: Icon(Icons.search),
-            label: 'Search',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Shows whether this build was compiled with Supabase credentials.
-///
-/// Scaffolding aid: it confirms at a glance that `--dart-define-from-file`
-/// reached the app. Delete it once there is real data on screen.
-class _BackendStatus extends StatelessWidget {
-  const _BackendStatus();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    // Supabase now connects after first paint, so this has to rebuild when it
-    // lands rather than reading a one-shot value at build time.
-    return ValueListenableBuilder<bool>(
-      valueListenable: supabaseReady,
-      builder: (context, ready, _) {
-        final host = isSupabaseConfigured
-            ? Uri.parse(supabaseUrl).host.split('.').first
-            : null;
-
-        final String label;
-        if (ready) {
-          label = 'Supabase: $host';
-        } else if (supabaseError != null) {
-          label = 'Backend unavailable';
-        } else if (isSupabaseConfigured) {
-          label = 'Connecting…';
-        } else {
-          label = 'No backend config';
-        }
-
-        return Chip(
-          avatar: Icon(
-            ready ? Icons.cloud_done_outlined : Icons.cloud_off_outlined,
-            size: 18,
-            color: ready ? NureColors.sageDeep : theme.colorScheme.outline,
-          ),
-          label: Text(label, style: nunito(12, 600)),
-          side: const BorderSide(color: NureColors.hairline),
-          backgroundColor: NureColors.card,
-        );
-      },
     );
   }
 }

@@ -85,11 +85,56 @@ device before shipping: Cupertino scroll physics and gesture feel, keyboard
 insets, permissions, plugins with native iOS implementations, and performance.
 The content is still laid out for a phone, so it stretches on a wide window.
 
-## Onboarding and design system
+## What nure is
 
-`lib/main.dart` opens on `OnboardingFlow`, which shows `CountryPage` first and
-falls through to `HomeScreen` once a country is chosen. Nothing is persisted
-yet — `OnboardingFlow` is where a Supabase write belongs once there is a table.
+A UK disease-awareness app. It tells you what illnesses are active in your
+area and what the official guidance says about avoiding, spotting and
+recovering from them. Every health statement is sourced to the NHS, UKHSA or
+WHO and links back — that sourcing is a product requirement, not a nicety.
+
+**The line the product does not cross.** In the UK, software that offers
+diagnostic or triage output can count as a medical device and require MHRA
+registration. nure therefore never tells anyone what they have, and never
+predicts a recovery. Two features are shaped by this and must stay shaped by
+it:
+
+- *Symptom search* finds condition pages to read. It does not rank them and
+  does not suggest which one applies.
+- *Recovery timeframes* are the typical ranges the NHS publishes, shown
+  alongside their "see a doctor if…" advice. They are never personalised.
+
+If a future change starts to look like "tell the user what is wrong with
+them", that is the wall, not a detail to design around.
+
+## Onboarding
+
+`lib/main.dart` opens on `OnboardingFlow` (`lib/onboarding/onboarding.dart`),
+which drives an ordered `OnboardingStep` enum and hands a filled
+`OnboardingAnswers` to its `onComplete`. Steps live in
+`lib/onboarding/steps/`; shared chrome is `lib/onboarding/widgets.dart`.
+
+- Steps are an **enum, not page indices**, so inserting one cannot silently
+  shift the progress maths or the back behaviour. `OnboardingStep.progress`
+  counts only the question steps — the welcome, building and done screens are
+  bookends and do not advance the bar.
+- Navigation is a **history stack**, so Back returns to the previous step
+  including across the branch below.
+- **Non-UK countries skip the region step.** Live data is UK-only, so asking
+  for a region nure cannot report on would be a promise it cannot keep.
+- `OnboardingAnswers.toJson()` is already the shape to send to Supabase; the
+  flow deliberately knows nothing about the backend, and `RootScreen` is where
+  a write belongs once there is a profile table.
+- The household/risk answers are not vanity questions: they decide which
+  official risk guidance is pulled to the top of a disease page.
+- Anything that **gates the primary button must be pinned**, via the
+  scaffold's `aboveButton` slot, never left in the scroll area. A disabled
+  button whose unlock sits below the fold reads as a broken screen; the scope
+  step's consent checkbox was exactly that until it was moved.
+
+Nunito has no glyph for "←" (U+2190) and renders it as an empty box — use
+`Icon(Icons.arrow_back)` for back affordances, not the character. The same
+caution applies to any decorative Unicode: flag emoji were rejected for the
+country list for the same class of reason.
 
 - `lib/theme.dart` holds the palette and the type ramp. Terracotta is for
   selection and actions; **sage green is reserved for progress only**, so
