@@ -1,7 +1,7 @@
 # nure
 
-Flutter app. Developed and previewed on Windows, inside a browser-based iPhone
-frame, because this machine cannot run the iOS Simulator.
+Flutter app, developed on Windows and previewed in the browser as an ordinary
+web app filling the window.
 
 ## Running it
 
@@ -17,11 +17,11 @@ and the browser then shows a failed-to-load page that looks like an app bug.
 A `.cmd` file is not subject to that policy. `run.ps1` is kept for anyone whose
 policy allows it; it takes the same arguments.
 
-Chrome opens on the preview page: the app renders inside an iPhone-shaped
-frame at that device's exact logical size. Keep that terminal focused and press
-`r` to hot reload, `R` to hot restart, `q` to quit.
+Chrome opens on http://localhost:8731 with the app filling the window. Keep
+that terminal focused and press `r` to hot reload, `R` to hot restart, `q` to
+quit.
 
-`run.ps1` is a thin wrapper that supplies the Supabase credentials and pins the
+`run.cmd` is a thin wrapper that supplies the Supabase credentials and pins the
 web port; it is equivalent to:
 
 ```powershell
@@ -35,42 +35,36 @@ Other useful commands:
 | `flutter analyze` | Static analysis; keep it at zero issues |
 | `flutter test` | Widget tests (run without credentials — see below) |
 | `flutter build web --dart-define-from-file=env.json` | Production web build into `build\web` |
-| `.\run.cmd edge` | Same preview in Edge |
+| `.\run.cmd edge` | Same thing in Edge |
 
-## The iPhone preview
+## The web host
 
-There is no iOS Simulator on Windows, and no Android emulator on this machine
-either (see constraints below), so the browser is the primary preview surface.
-Three files make it look and behave like a phone:
+The app attaches to `<body>` and fills the browser window. There was an iPhone
+device frame here previously; it was removed on request, so the layout is now
+whatever size the window is.
 
-- `web/index.html` — draws the device: bezel, Dynamic Island, home indicator,
-  side buttons. A toolbar picks the device preset and the zoom level (both
-  persist in `localStorage`). The `#nure-screen` element is sized to the
-  preset's logical size and is the app's viewport.
-- `web/flutter_bootstrap.js` — a custom bootstrap. The default one attaches the
-  app to `<body>`, which would fill the whole browser window; this one passes
-  `hostElement: #nure-screen` to `initializeEngine` so the app renders inside
-  the frame instead.
-- `lib/simulator_insets.dart` — on the web the engine reports zero padding, so
-  `SafeArea` and `AppBar` would not inset for the Island or home indicator and
-  a layout that looks fine in Chrome could collide with them on hardware. The
-  `SimulatorInsets` widget recognises a preset viewport size and injects that
-  iPhone's real insets into `MediaQuery`. It is a no-op off the web, where the
-  OS supplies the true values.
+`web/flutter_bootstrap.js` is still custom, for two reasons the default
+bootstrap does not cover:
 
-Presets are defined in two places that must stay in sync: `window.nureDevices`
-in `web/index.html` and `_presets` in `lib/simulator_insets.dart`. Adding a
-device means editing both.
-
-The frame overlays (Island, home indicator) are `pointer-events: none`, so taps
-pass through to the app.
+- **CanvasKit is pinned to this server** via `canvasKitBaseUrl: "canvaskit/"`.
+  By default Flutter fetches its graphics engine from
+  `https://www.gstatic.com/flutter-canvaskit`. Embedded browsers — notably the
+  VS Code preview pane, which is a webview with a strict content policy — block
+  that external request, and the engine then never initializes. The failure is
+  entirely browser-side, so **the dev server log stays clean** while the page
+  hangs forever on the loading placeholder. This cost real debugging time; do
+  not remove the pin. It also makes the preview work offline.
+- **Boot failures are shown on the page.** Script errors, unhandled rejections
+  and a 20-second stall overwrite the `#loading` placeholder with the error
+  text in red, instead of leaving "starting nure…" up indefinitely, which is
+  indistinguishable from still loading.
 
 ### What the preview does not prove
 
-It is a faithful preview of *layout*, not of iOS. It renders with Flutter's web
-engine, so platform behaviour still needs a real device before shipping:
-Cupertino scroll physics and gesture feel, keyboard insets, permissions,
-plugins with native iOS implementations, and performance.
+It renders with Flutter's web engine, so platform behaviour still needs a real
+device before shipping: Cupertino scroll physics and gesture feel, keyboard
+insets, permissions, plugins with native iOS implementations, and performance.
+The content is still laid out for a phone, so it stretches on a wide window.
 
 ## Onboarding and design system
 

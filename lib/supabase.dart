@@ -1,3 +1,6 @@
+import 'dart:async' show TimeoutException;
+
+import 'package:flutter/foundation.dart' show ValueNotifier, debugPrint;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 export 'package:supabase_flutter/supabase_flutter.dart'
@@ -37,15 +40,38 @@ bool get isSupabaseConfigured => supabaseUrl.isNotEmpty && supabaseKey.isNotEmpt
 
 bool _initialized = false;
 
+/// Flips to true once the client is usable, so widgets can rebuild when the
+/// backend finishes connecting after first paint.
+final ValueNotifier<bool> supabaseReady = ValueNotifier<bool>(false);
+
+/// Why initialization failed, for display. Null when it has not failed.
+String? supabaseError;
+
 /// Initializes Supabase if this build has credentials.
 ///
-/// Safe to call when unconfigured: it does nothing, so the app still runs
-/// without a backend instead of crashing on startup.
+/// **Never await this before `runApp`.** `Supabase.initialize` touches browser
+/// storage to restore a session, and an embedded or privacy-restricted browser
+/// can make that throw or hang — which would stop the first frame from ever
+/// painting and leave a blank screen. The UI must come up first and learn
+/// about the backend afterwards, so this is deliberately fire-and-forget,
+/// time-boxed, and swallows its errors into [supabaseError].
 Future<void> initSupabase() async {
   if (!isSupabaseConfigured || _initialized) return;
 
-  await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseKey);
-  _initialized = true;
+  try {
+    await Supabase.initialize(
+      url: supabaseUrl,
+      publishableKey: supabaseKey,
+    ).timeout(const Duration(seconds: 8));
+    _initialized = true;
+    supabaseReady.value = true;
+  } on TimeoutException {
+    supabaseError = 'Supabase took too long to initialize';
+    debugPrint('[nure] $supabaseError');
+  } catch (e) {
+    supabaseError = '$e';
+    debugPrint('[nure] Supabase init failed: $e');
+  }
 }
 
 /// The Supabase client, or null when this build has no credentials.

@@ -5,7 +5,8 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="nure - iPhone preview">
+  <meta name="description" content="nure">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -14,334 +15,37 @@
 
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>nure - iPhone preview</title>
+  <title>nure</title>
   <link rel="manifest" href="manifest.json">
 
   <style>
-    :root {
-      --bezel: #0b0b0d;
-      --rail: #2a2a30;
-      --page: #16161a;
-      --page-2: #1d1d22;
-      --ink: #e8e8ee;
-      --ink-dim: #8b8b96;
-      --accent: #5b8cff;
-      --radius: 55px;
-    }
-
-    * { box-sizing: border-box; }
-
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
       overflow: hidden;
-      background: var(--page);
-      background-image: radial-gradient(ellipse 120% 80% at 50% -10%, var(--page-2), var(--page));
-      color: var(--ink);
-      font: 13px/1.4 -apple-system, "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+      background: #F7F2E8;
+      font: 13px/1.4 -apple-system, "Segoe UI", system-ui, sans-serif;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ---------- toolbar ---------- */
-
-    .toolbar {
+    /* Shown until the engine paints, then removed by flutter_bootstrap.js.
+       It also doubles as the surface boot errors are written onto. */
+    #loading {
       position: fixed;
-      top: 0; left: 0; right: 0;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      padding: 0 16px;
-      z-index: 10;
-      background: rgba(22, 22, 26, 0.72);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-      user-select: none;
-    }
-
-    .brand {
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-size: 11px;
-      color: var(--ink-dim);
-    }
-
-    .toolbar label {
-      color: var(--ink-dim);
-      font-size: 11px;
-    }
-
-    .toolbar select {
-      appearance: none;
-      background: rgba(255, 255, 255, 0.07);
-      color: var(--ink);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 7px;
-      padding: 5px 26px 5px 9px;
-      font: inherit;
-      font-size: 12px;
-      cursor: pointer;
-      background-image: linear-gradient(45deg, transparent 50%, var(--ink-dim) 50%),
-                        linear-gradient(135deg, var(--ink-dim) 50%, transparent 50%);
-      background-position: calc(100% - 14px) 52%, calc(100% - 9px) 52%;
-      background-size: 5px 5px, 5px 5px;
-      background-repeat: no-repeat;
-    }
-
-    .toolbar select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-
-    .seg {
-      display: flex;
-      gap: 2px;
-      background: rgba(255, 255, 255, 0.07);
-      border-radius: 7px;
-      padding: 2px;
-    }
-
-    .seg button {
-      background: transparent;
-      color: var(--ink-dim);
-      border: 0;
-      border-radius: 5px;
-      padding: 4px 9px;
-      font: inherit;
-      font-size: 11px;
-      cursor: pointer;
-    }
-
-    .seg button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.14); color: var(--ink); }
-    .seg button:hover { color: var(--ink); }
-
-    .spacer { flex: 1; }
-
-    .hint { color: var(--ink-dim); font-size: 11px; }
-
-    .hint kbd {
-      font: inherit;
-      background: rgba(255, 255, 255, 0.09);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-bottom-width: 2px;
-      border-radius: 4px;
-      padding: 1px 5px;
-      color: var(--ink);
-    }
-
-    /* ---------- stage ---------- */
-
-    .stage {
-      position: absolute;
-      inset: 44px 0 0 0;
-      display: grid;
-      place-items: center;
-      overflow: auto;
-    }
-
-    .scaler {
-      transform-origin: center center;
-      transition: transform 140ms ease;
-      padding: 24px;
-    }
-
-    /* ---------- device ---------- */
-
-    .device {
-      position: relative;
-      padding: 12px;
-      border-radius: var(--radius);
-      background: var(--bezel);
-      background-image: linear-gradient(145deg, #3a3a42, #0b0b0d 18%, #0b0b0d 82%, #3a3a42);
-      box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.07),
-        0 30px 70px -20px rgba(0, 0, 0, 0.85),
-        0 8px 24px rgba(0, 0, 0, 0.5);
-    }
-
-    .screen {
-      position: relative;
-      overflow: hidden;
-      border-radius: calc(var(--radius) - 12px);
-      background: #fff;
-      /* width/height are set from JS per device preset */
-    }
-
-    /* Flutter's host element must fill the screen box exactly. */
-    .screen > *:not(.loading) { width: 100% !important; height: 100% !important; }
-
-    .island, .home-indicator {
-      position: absolute;
-      pointer-events: none;   /* taps fall through to the app */
-      z-index: 5;
-    }
-
-    .island {
-      top: 23px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 124px;
-      height: 36px;
-      border-radius: 18px;
-      background: #000;
-    }
-
-    .home-indicator {
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 140px;
-      height: 5px;
-      border-radius: 3px;
-      background: rgba(0, 0, 0, 0.3);
-    }
-
-    .device[data-chin="button"] .home-indicator { display: none; }
-
-    /* side buttons */
-    .btn {
-      position: absolute;
-      background-image: linear-gradient(90deg, #15151a, #3a3a42 55%, #15151a);
-    }
-
-    .btn.left  { left: -2px;  width: 3px; border-radius: 2px 0 0 2px; }
-    .btn.right { right: -2px; width: 3px; border-radius: 0 2px 2px 0; }
-    .btn.silent { top: 96px;  height: 28px; }
-    .btn.vol-up { top: 146px; height: 54px; }
-    .btn.vol-dn { top: 212px; height: 54px; }
-    .btn.power  { top: 160px; height: 76px; }
-
-    .loading {
-      position: absolute;
       inset: 0;
       display: grid;
       place-items: center;
-      background: #fff;
       color: #9aa0ad;
-      font-size: 12px;
+      font-size: 13px;
       letter-spacing: 0.04em;
+      background: #F7F2E8;
       z-index: 4;
     }
   </style>
 </head>
 <body>
-  <div class="toolbar">
-    <span class="brand">nure</span>
-
-    <label for="device-select">Device</label>
-    <select id="device-select">
-      <option value="16pro">iPhone 16 Pro &mdash; 402 &times; 874</option>
-      <option value="16">iPhone 16 &mdash; 393 &times; 852</option>
-      <option value="16plus">iPhone 16 Plus &mdash; 430 &times; 932</option>
-      <option value="se">iPhone SE &mdash; 375 &times; 667</option>
-    </select>
-
-    <label>Zoom</label>
-    <div class="seg" id="zoom-seg">
-      <button data-zoom="fit">Fit</button>
-      <button data-zoom="1">100%</button>
-      <button data-zoom="0.75">75%</button>
-      <button data-zoom="0.5">50%</button>
-    </div>
-
-    <span class="spacer"></span>
-    <span class="hint">Hot reload: press <kbd>r</kbd> in the terminal running <kbd>flutter run</kbd></span>
-  </div>
-
-  <div class="stage">
-    <div class="scaler" id="scaler">
-      <div class="device" id="device" data-chin="indicator">
-        <span class="btn left silent"></span>
-        <span class="btn left vol-up"></span>
-        <span class="btn left vol-dn"></span>
-        <span class="btn right power"></span>
-
-        <div class="screen" id="nure-screen">
-          <div class="loading" id="loading">starting nure&hellip;</div>
-        </div>
-
-        <span class="island" id="island"></span>
-        <span class="home-indicator"></span>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // Logical size and safe-area insets of each preset. The insets are read by
-    // the Dart side so MediaQuery reports what a real iPhone would report.
-    window.nureDevices = {
-      "16pro":  { w: 402, h: 874, top: 59, bottom: 34, cutout: "island", radius: 55 },
-      "16":     { w: 393, h: 852, top: 59, bottom: 34, cutout: "island", radius: 55 },
-      "16plus": { w: 430, h: 932, top: 62, bottom: 34, cutout: "island", radius: 55 },
-      "se":     { w: 375, h: 667, top: 20, bottom: 0,  cutout: "none",   radius: 12 }
-    };
-
-    (function () {
-      var screenEl = document.getElementById("nure-screen");
-      var deviceEl = document.getElementById("device");
-      var scalerEl = document.getElementById("scaler");
-      var islandEl = document.getElementById("island");
-      var select   = document.getElementById("device-select");
-      var zoomSeg  = document.getElementById("zoom-seg");
-
-      var zoomMode = localStorage.getItem("nure.zoom") || "fit";
-      var deviceId = localStorage.getItem("nure.device") || "16pro";
-      if (!window.nureDevices[deviceId]) { deviceId = "16pro"; }
-
-      function applyZoom() {
-        var scale;
-        if (zoomMode === "fit") {
-          var availH = window.innerHeight - 44 - 24;
-          var availW = window.innerWidth - 24;
-          var needH = deviceEl.offsetHeight || 1;
-          var needW = deviceEl.offsetWidth || 1;
-          scale = Math.min(1, availH / needH, availW / needW);
-        } else {
-          scale = parseFloat(zoomMode) || 1;
-        }
-        scalerEl.style.transform = "scale(" + scale + ")";
-      }
-
-      function applyDevice() {
-        var d = window.nureDevices[deviceId];
-        screenEl.style.width  = d.w + "px";
-        screenEl.style.height = d.h + "px";
-        deviceEl.style.setProperty("--radius", d.radius + "px");
-        deviceEl.dataset.chin = d.bottom > 0 ? "indicator" : "button";
-        islandEl.style.display = d.cutout === "island" ? "block" : "none";
-
-        // Hand the safe-area insets to Dart.
-        window.nureInsets = { top: d.top, bottom: d.bottom };
-        window.dispatchEvent(new CustomEvent("nure-insets", { detail: window.nureInsets }));
-
-        applyZoom();
-      }
-
-      select.value = deviceId;
-      select.addEventListener("change", function () {
-        deviceId = select.value;
-        localStorage.setItem("nure.device", deviceId);
-        applyDevice();
-      });
-
-      zoomSeg.addEventListener("click", function (e) {
-        var btn = e.target.closest("button[data-zoom]");
-        if (!btn) { return; }
-        zoomMode = btn.dataset.zoom;
-        localStorage.setItem("nure.zoom", zoomMode);
-        Array.prototype.forEach.call(zoomSeg.querySelectorAll("button"), function (b) {
-          b.setAttribute("aria-pressed", String(b === btn));
-        });
-        applyZoom();
-      });
-
-      Array.prototype.forEach.call(zoomSeg.querySelectorAll("button"), function (b) {
-        b.setAttribute("aria-pressed", String(b.dataset.zoom === zoomMode));
-      });
-
-      window.addEventListener("resize", applyZoom);
-      applyDevice();
-    })();
-  </script>
+  <div id="loading">starting nure&hellip;</div>
 
   <script src="flutter_bootstrap.js" async></script>
 </body>

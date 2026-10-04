@@ -1,6 +1,6 @@
-# Launches nure in the Chrome iPhone preview with Supabase credentials.
+# Launches nure in Chrome with Supabase credentials.
 #
-#   .\run.ps1            # Chrome preview (default)
+#   .\run.ps1            # Chrome (default)
 #   .\run.ps1 -Device edge
 #   .\run.ps1 -Device <android-device-id>
 #

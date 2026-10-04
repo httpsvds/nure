@@ -1,15 +1,21 @@
+import 'dart:async' show unawaited;
+
 import 'package:flutter/material.dart';
 
 import 'onboarding/country.dart';
 import 'onboarding/country_page.dart';
-import 'simulator_insets.dart';
 import 'supabase.dart';
 import 'theme.dart';
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await initSupabase();
+
+  // Paint first, connect second. Awaiting the backend here would mean any
+  // storage restriction or network stall in the browser shows as a blank
+  // screen instead of an app.
   runApp(const NureApp());
+
+  unawaited(initSupabase());
 }
 
 class NureApp extends StatelessWidget {
@@ -21,8 +27,6 @@ class NureApp extends StatelessWidget {
       title: 'nure',
       debugShowCheckedModeBanner: false,
       theme: buildNureTheme(),
-      // Keeps the browser preview honest about iPhone safe areas.
-      builder: (context, child) => SimulatorInsets(child: child!),
       home: const OnboardingFlow(),
     );
   }
@@ -138,24 +142,38 @@ class _BackendStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final ready = supabase != null;
 
-    final host = isSupabaseConfigured
-        ? Uri.parse(supabaseUrl).host.split('.').first
-        : null;
+    // Supabase now connects after first paint, so this has to rebuild when it
+    // lands rather than reading a one-shot value at build time.
+    return ValueListenableBuilder<bool>(
+      valueListenable: supabaseReady,
+      builder: (context, ready, _) {
+        final host = isSupabaseConfigured
+            ? Uri.parse(supabaseUrl).host.split('.').first
+            : null;
 
-    return Chip(
-      avatar: Icon(
-        ready ? Icons.cloud_done_outlined : Icons.cloud_off_outlined,
-        size: 18,
-        color: ready ? NureColors.sageDeep : theme.colorScheme.outline,
-      ),
-      label: Text(
-        ready ? 'Supabase: $host' : 'No backend config',
-        style: nunito(12, 600),
-      ),
-      side: const BorderSide(color: NureColors.hairline),
-      backgroundColor: NureColors.card,
+        final String label;
+        if (ready) {
+          label = 'Supabase: $host';
+        } else if (supabaseError != null) {
+          label = 'Backend unavailable';
+        } else if (isSupabaseConfigured) {
+          label = 'Connecting…';
+        } else {
+          label = 'No backend config';
+        }
+
+        return Chip(
+          avatar: Icon(
+            ready ? Icons.cloud_done_outlined : Icons.cloud_off_outlined,
+            size: 18,
+            color: ready ? NureColors.sageDeep : theme.colorScheme.outline,
+          ),
+          label: Text(label, style: nunito(12, 600)),
+          side: const BorderSide(color: NureColors.hairline),
+          backgroundColor: NureColors.card,
+        );
+      },
     );
   }
 }

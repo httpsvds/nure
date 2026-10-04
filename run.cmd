@@ -1,8 +1,8 @@
 @echo off
-rem Launches nure in the Chrome iPhone preview with Supabase credentials.
+rem Launches nure in Chrome with Supabase credentials.
 rem
-rem   run              - Chrome preview (default)
-rem   run edge         - same preview in Edge
+rem   run              - Chrome (default)
+rem   run edge         - same thing in Edge
 rem   run <device-id>  - a real device, e.g. an Android phone over USB
 rem
 rem Prefer this over run.ps1: a .cmd file is not subject to the PowerShell
