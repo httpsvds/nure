@@ -7,21 +7,28 @@ frame, because this machine cannot run the iOS Simulator.
 
 ```powershell
 cd C:\Users\Vedik\nure
-flutter run -d chrome
+.\run.ps1
 ```
 
 Chrome opens on the preview page: the app renders inside an iPhone-shaped
 frame at that device's exact logical size. Keep that terminal focused and press
 `r` to hot reload, `R` to hot restart, `q` to quit.
 
+`run.ps1` is a thin wrapper that supplies the Supabase credentials and pins the
+web port; it is equivalent to:
+
+```powershell
+flutter run -d chrome --web-port 8731 --dart-define-from-file=env.json
+```
+
 Other useful commands:
 
 | Command | Purpose |
 | --- | --- |
 | `flutter analyze` | Static analysis; keep it at zero issues |
-| `flutter test` | Widget tests |
-| `flutter build web` | Production web build into `build\web` |
-| `flutter run -d edge` | Same preview in Edge |
+| `flutter test` | Widget tests (run without credentials — see below) |
+| `flutter build web --dart-define-from-file=env.json` | Production web build into `build\web` |
+| `.\run.ps1 -Device edge` | Same preview in Edge |
 
 ## The iPhone preview
 
@@ -57,6 +64,41 @@ It is a faithful preview of *layout*, not of iOS. It renders with Flutter's web
 engine, so platform behaviour still needs a real device before shipping:
 Cupertino scroll physics and gesture feel, keyboard insets, permissions,
 plugins with native iOS implementations, and performance.
+
+## Backend (Supabase)
+
+Project ref `noqvocephpmfwoyrauir` (`https://noqvocephpmfwoyrauir.supabase.co`).
+
+Credentials are **not** in the repo. They live in `env.json`, which is
+git-ignored; `env.example.json` is the committed template. They reach the app
+at compile time through `--dart-define-from-file=env.json`, read by
+`String.fromEnvironment` in `lib/supabase.dart`.
+
+- `lib/supabase.dart` is the only place that touches `Supabase.initialize`.
+  `supabase` returns `SupabaseClient?` — **null** when the build has no
+  credentials — so call sites must handle null rather than assume a client.
+  That is what keeps `flutter test` working: tests compile without defines,
+  `isSupabaseConfigured` is false, and no network setup is needed.
+- Supabase is migrating from legacy `anon` JWTs to `sb_publishable_...` keys.
+  Either works; set `SUPABASE_PUBLISHABLE_KEY` or `SUPABASE_ANON_KEY` and
+  `supabaseKey` prefers the former. `Supabase.initialize` collapses its
+  `publishableKey` and deprecated `anonKey` parameters into one value.
+- The client key is public by design — it is compiled into `main.dart.js` and
+  readable by anyone. **Row Level Security is the only thing protecting the
+  data, so enable RLS on every table.** A `service_role` / `sb_secret_...` key
+  must never appear in this app; it belongs server-side only.
+
+Current dashboard state: email signup enabled, email confirmation **required**
+(`mailer_autoconfirm: false`), no OAuth providers enabled, anonymous sign-in
+off. No tables exist yet.
+
+### Auth redirects and the web port
+
+`run.ps1` pins `--web-port 8731` deliberately. `flutter run -d chrome` picks a
+random port otherwise, and every OAuth redirect URL has to be allow-listed in
+the dashboard under **Authentication > URL Configuration** — a moving port
+would need re-adding on each launch. Add `http://localhost:8731` there before
+wiring up OAuth. Email/password auth does not need this.
 
 ## Machine constraints
 

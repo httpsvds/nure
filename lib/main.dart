@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import 'simulator_insets.dart';
+import 'supabase.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await initSupabase();
   runApp(const NureApp());
 }
 
@@ -65,6 +68,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
+              const SizedBox(height: 28),
+              const _BackendStatus(),
             ],
           ),
         ),
@@ -90,6 +95,38 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Shows whether this build was compiled with Supabase credentials.
+///
+/// Scaffolding aid: it confirms at a glance that `--dart-define-from-file`
+/// reached the app. Delete it once there is real data on screen.
+class _BackendStatus extends StatelessWidget {
+  const _BackendStatus();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final ready = supabase != null;
+
+    final host = isSupabaseConfigured
+        ? Uri.parse(supabaseUrl).host.split('.').first
+        : null;
+
+    return Chip(
+      avatar: Icon(
+        ready ? Icons.cloud_done_outlined : Icons.cloud_off_outlined,
+        size: 18,
+        color: ready ? theme.colorScheme.primary : theme.colorScheme.outline,
+      ),
+      label: Text(
+        ready ? 'Supabase: $host' : 'No backend config',
+        style: theme.textTheme.labelMedium,
+      ),
+      side: BorderSide(color: theme.colorScheme.outlineVariant),
+      backgroundColor: theme.colorScheme.surfaceContainerLow,
     );
   }
 }

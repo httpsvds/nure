@@ -46,3 +46,6 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local secrets passed via --dart-define-from-file. Never commit this.
+/env.json
