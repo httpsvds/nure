@@ -65,6 +65,41 @@ engine, so platform behaviour still needs a real device before shipping:
 Cupertino scroll physics and gesture feel, keyboard insets, permissions,
 plugins with native iOS implementations, and performance.
 
+## Onboarding and design system
+
+`lib/main.dart` opens on `OnboardingFlow`, which shows `CountryPage` first and
+falls through to `HomeScreen` once a country is chosen. Nothing is persisted
+yet — `OnboardingFlow` is where a Supabase write belongs once there is a table.
+
+- `lib/theme.dart` holds the palette and the type ramp. Terracotta is for
+  selection and actions; **sage green is reserved for progress only**, so
+  forward motion never reads as "this is tappable". Use `nunito(size, weight)`
+  rather than raw `TextStyle`.
+- Nunito is a **variable** font shipped as one file with a `wght` axis. Weights
+  must be set through `FontVariation`, which `nunito()` does — setting only
+  `FontWeight` lets the engine fake the weight by smearing glyphs.
+- `lib/onboarding/countries.dart` is **generated** — do not hand-edit. It is
+  built by `scratchpad/gen_countries.js` from ICU region names intersected with
+  the flag assets bundled in `country_flags`, so every one of the 258 rows is
+  guaranteed to render a flag instead of an empty box.
+- `lib/widgets/pressable.dart` is the press animation used by every tappable
+  surface. It lets a press-in finish before springing back, so fast taps still
+  show a visible dip.
+- The country list uses `itemExtent` with a fixed row height; keep rows a
+  uniform height or 258 rows get measured on every scroll.
+
+### Looking at a screen without launching Chrome
+
+`test/preview_golden.dart` renders a page to `test/goldens/` as a PNG at true
+iPhone size with the real fonts loaded:
+
+```powershell
+flutter test test/preview_golden.dart --update-goldens
+```
+
+Its name omits the `_test` suffix on purpose, so `flutter test` does not run it
+— golden images are platform-specific and would fail on another machine.
+
 ## Backend (Supabase)
 
 Project ref `noqvocephpmfwoyrauir` (`https://noqvocephpmfwoyrauir.supabase.co`).
